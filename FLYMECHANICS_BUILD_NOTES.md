@@ -188,3 +188,39 @@ Running list of everything agreed in chat. The final build prompt must include a
 - `nitro` added (dependency) and `nitro()` added to vite.config.ts. Verified: NITRO_PRESET=vercel build produces .vercel/output (static 65 MB incl. 56 media files, one server function); local preview returns 200 for / and /privacy. `.vercel` added to .gitignore.
 - Not verified: a real Vercel deployment, the quote form server function running on Vercel, env vars. The form's in-memory rate limit is per function instance on Vercel, so it is weak; Turnstile is the real spam control.
 - Vercel Hobby forbids commercial use: Pro plan needed.
+
+## Deployed-site fix (from the owner's screen recording, 24 Oct)
+- Seen on the live site: Services rows 02 to 06 showed a pale empty background with no film (only row 01 loaded), and a half-drawn film frame at the scramble/navigator handover. Cause (inferred from the recording, not reproduced on a slow network): the films are 2.5 to 6 MB each, all-keyframe, and only started loading when a chapter was about 1.5 screens away, so a fast scroll on a real connection arrived before the file did; in motion mode no poster was shown, so there was nothing to see.
+- Fix 1: while a film is chosen but not yet ready, its small WebP poster shows (10 to 35 KB), so an unloaded film never looks empty.
+- Fix 2: films now start loading 3 screens ahead (was 1.5), and on capable devices (tier A) they also load in the background in page order, 1.1 s apart, after the first interaction. Phones, tier B and Save-Data only load what is near.
+- Fix 3: the 11 desktop films were re-encoded from the original clips at 1600x900, crf 25, keyframe every 8 frames (was all-keyframe at 1280 or 1600). About 30 to 55 percent smaller each (Services 19 MB to 9.7 MB), SSIM 0.98 to 0.99 against the old files. Old files kept in the scratchpad. Phone files unchanged.
+- Fix 4: Vercel cache headers via nitro routeRules: /assets/** immutable one year; /media/** one day plus stale-while-revalidate a week.
+- Not verified: on a throttled connection or on the live site; scrub smoothness with the 8-frame keyframe gap was checked on the dev server only.
+
+## Film quality upgrade (owner asked to enhance all films without hurting the viewing experience)
+- Every film re-encoded from the original clips, four versions each, all with a keyframe every 8 frames:
+  - `NAME-l.mp4` 1920x1080 crf 23 (nav clips crf 27): only for screens with 1700+ physical pixels AND a browser that reports 10+ Mbps, 4g and no Save-Data (Chrome and Edge report this; Safari and Firefox do not, so they get the 1600 file).
+  - `NAME.mp4` 1600x900 crf 25 (nav crf 27): the normal desktop file. Nav (Earth) clips went from 1280 to 1600.
+  - `NAME-m.mp4` 1024x576 crf 28 (was 720x406): weaker devices and landscape phones.
+  - `NAME-p.mp4` 608x1080 crf 26: portrait phones, a centre crop of the 1080p source, so object-fit cover frames it as before but with about 2.7x the vertical detail (was 406 px tall stretched to the phone screen).
+- Choice is made in `pickFilm()` in ScrubVideo.tsx; `src/config/media.ts` lists all four. The hero wordmark film keeps the landscape files.
+- Posters regenerated from the originals at 1600 wide (WebP q78, 11 to 157 KB).
+- Sizes: default desktop set 42 MB (was 30), large set 79 MB (only fast connections), mobile 14 MB, portrait 18 MB. Deployment static folder is now about 139 MB. Previous encodes are in the session scratchpad (media_before_hq).
+- Checked on dev server: 40 random seeks per film took a median 15 to 31 ms (p90 under 130 ms) for 1080p, 1600 and portrait files alike, so scrubbing is not slower. Not checked: a real phone, a real fast or slow connection, or the live site.
+- Source clips are 1080p AI video; the upgrade cannot add detail they do not have.
+
+## Phone fixes and smoothness (owner: "mobile view is so terrible", "frame rate should be smooth")
+- ROOT CAUSE of the terrible phone view: the footer wordmark (FitText) was measured at 100px while in the page flow. On a phone that is wider than the screen, so it widened its parent and then the page (mobile browsers grow the layout viewport to fit), and the fit then locked the overflow in: the layout was 799 px wide on a 412 px phone, so everything was zoomed out and half off screen. Found with real device emulation (Playwright Chromium with Pixel 7 and iPhone 13, and Windows WebKit); the Browser pane's size emulation had been hiding it (it reported 799 wide too, and I had missed the sign). Fix: FitText measures with the text taken out of the flow.
+- After the fix: innerWidth equals the device width (412 and 390), no horizontal overflow, and every chapter was reviewed in phone screenshots (hero, statement, handle and scramble, navigator, services, approach, FAQ, contact).
+- Touch devices are tier B (no particles, mist, cursor or film skew); the hero wordmark film is a still on phones.
+- Scrub video: a new seek no longer interrupts a seek that is still decoding (it is applied when the previous one lands), so a fast scroll on a slow device keeps updating frames instead of freezing. iOS unlock: a silent play-then-pause on the first touch so iPhones decode the films.
+- Velocity variables are written on the film containers only, not on html.
+- Phones on a reported 4g connection also preload the small portrait films in the background.
+- Measured (Playwright, production build, no CPU throttling): Pixel 7 and iPhone 13 emulation 52 to 54 fps average while scrolling 1500 px/s, 95th percentile frame 17 to 33 ms; desktop 47 to 53 fps at 2500 px/s. Scrub seeks land in one frame (16.7 ms) for all encodes. A 4x CPU throttle in headless software rendering dropped to 9 fps, but the profile showed the cost was the test harness's scrollTo and browser style/paint work, not the site's scripts (under 15 percent), so that number is not a real-phone figure.
+- NOT verified: a real phone (smoothness depends on its GPU), real iOS Safari, the live site.
+
+## Phone check, round 2 (before redeploy)
+- Tested 10 sizes with real device emulation: 280 (folded foldable), 320, 360, iPhone SE, iPhone 13, Pixel 7, iPhone 14 Pro Max, iPad Mini, and two landscape phones; home, privacy and terms; menu open. Page width equals device width and there is no sideways scroll at any of them (after the fixes below).
+- Fixed: on phones under 420 px the logo sat under the quote pill once the pill appeared (the pill is 158 px wide); the logo now steps aside past the first screen (the menu still links home). At 280 px the service card and the footer email pushed the page 14 px too wide: smaller title and wrapping now. The motion controls in the menu wrap on 280 px. On landscape phones (about 340 px tall) the ticker is hidden so the first screen's last row is not cut off.
+- Checked by tapping on Pixel 7 and iPhone SE emulation: all five menu links land on their chapter and close the menu; the FAQ opens; the form shows its five validation messages on an empty submit; inputs are 16 px (iOS does not zoom on focus); pinch zoom is allowed.
+- Not checked: a real device, real iOS Safari, a sent enquiry from a phone (email is not configured yet).

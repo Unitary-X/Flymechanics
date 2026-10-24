@@ -28,13 +28,18 @@ export function FitText({ text, dot = true, className = '', style, knockout = fa
     if (!box || !inner) return
 
     const fit = () => {
+      // Measure with the text taken out of the flow. In flow, a 100px wordmark is wider than a phone, which widens
+      // its parent and then the whole page (mobile browsers grow the layout viewport to fit), and the box would
+      // then "fit" the widened page and lock the overflow in.
+      const previous = inner.style.fontSize
+      inner.style.position = 'absolute'
       inner.style.fontSize = '100px'
       const measured = inner.getBoundingClientRect().width
       const available = box.clientWidth
-      if (measured > 0 && available > 0) {
-        // Floor to avoid sub-pixel overflow from rounding.
-        inner.style.fontSize = `${Math.floor((100 * available) / measured * 100) / 100}px`
-      }
+      inner.style.position = ''
+      // Floor to avoid sub-pixel overflow from rounding.
+      inner.style.fontSize =
+        measured > 0 && available > 0 ? `${Math.floor((100 * available) / measured * 100) / 100}px` : previous
     }
 
     // Measure only once the web fonts are in: measuring with the fallback font and then again later makes the

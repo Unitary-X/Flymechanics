@@ -20,7 +20,12 @@ export function WordmarkFilm() {
       setSrc(undefined)
       return
     }
-    setSrc(window.innerWidth < MOBILE_MAX || tier === 'B' ? media.hero.mobile : media.hero.desktop)
+    // On a phone the wordmark is a thin strip: a still frame looks the same and costs nothing while scrolling starts.
+    if (window.innerWidth < MOBILE_MAX) {
+      setSrc(undefined)
+      return
+    }
+    setSrc(tier === 'B' ? media.hero.mobile : media.hero.desktop)
   }, [active, ready, tier])
 
   useEffect(() => {

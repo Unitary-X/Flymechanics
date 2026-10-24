@@ -50,7 +50,8 @@ export function Header() {
         <a
           href="/#hero"
           aria-label={`${site.brand}, back to top`}
-          className="t-label"
+          data-past={pastHero}
+          className="t-label hdr-logo"
           style={{ pointerEvents: 'auto', textDecoration: 'none', padding: '8px 4px', color: 'inherit' }}
         >
           {site.wordmark}

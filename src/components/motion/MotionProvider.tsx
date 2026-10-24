@@ -63,7 +63,10 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
     // Coarse tier hint. A live frame-rate sample refines this in the video engine phase.
     const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
-    if ((memory !== undefined && memory <= 2) || navigator.hardwareConcurrency <= 4) setTier('B')
+    // Touch devices (phones, tablets) are tier B whatever their core count: particles, mist and the film skew are
+    // off, so the scroll films have the whole main thread to themselves and the frame rate stays smooth.
+    const touch = window.matchMedia('(pointer: coarse)').matches
+    if (touch || (memory !== undefined && memory <= 2) || navigator.hardwareConcurrency <= 4) setTier('B')
 
     return () => reduced.removeEventListener('change', evaluate)
   }, [])

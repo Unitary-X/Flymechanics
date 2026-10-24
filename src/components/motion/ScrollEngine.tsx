@@ -65,9 +65,17 @@ export function ScrollEngine() {
     let v = 0
     let max = 0
     let lastV = ''
-    const root = document.documentElement.style
+    // The two velocity variables are written only on the film containers that use them. Written on <html> they are
+    // inherited by every element, so each frame of scrolling re-computed the style of the whole page (about a sixth
+    // of the main thread on a phone-sized layout).
+    let targets: HTMLElement[] = []
+    const collect = () => {
+      targets = Array.from(document.querySelectorAll<HTMLElement>('.stage, .nav-section, .svc-stick, .close-stick'))
+    }
+    const write = (name: string, value: string) => targets.forEach((t) => t.style.setProperty(name, value))
     const measure = () => {
       max = document.documentElement.scrollHeight - window.innerHeight
+      collect()
     }
     measure()
     ScrollTrigger.addEventListener('refresh', measure)
@@ -84,13 +92,15 @@ export function ScrollEngine() {
       const s = v.toFixed(3)
       if (s !== lastV) {
         lastV = s
-        root.setProperty('--v', s)
-        root.setProperty('--va', Math.abs(v).toFixed(3))
+        write('--v', s)
+        write('--va', Math.abs(v).toFixed(3))
       }
     }
     gsap.ticker.add(tick)
     return () => {
       gsap.ticker.remove(tick)
+      write('--v', '0')
+      write('--va', '0')
       ScrollTrigger.removeEventListener('refresh', measure)
       window.removeEventListener('resize', measure)
     }
