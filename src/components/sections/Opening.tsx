@@ -3,7 +3,6 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { site } from '~/content/site.content'
 import { FitText } from '~/components/motion/FitText'
-import { ChennaiClock, ServiceTicker, WordmarkFilm } from './HeroExtras'
 import { ScrubVideo, type ScrubHandle } from '~/components/motion/ScrubVideo'
 import { useMotion } from '~/components/motion/MotionProvider'
 import { calmPinFactor } from '~/config/motion'
@@ -21,8 +20,9 @@ const st = (x: number) => HERO_END + x * K
 
 /**
  * Chapters 01 and 02 as one pinned stage, so the handover is exact (spec 21.2).
- *  01 Hero: white page, edge-to-edge wordmark. The letters lift away, the gold full stop swells to fill the screen,
- *     hero-film opens through a circle centred on the dot (spec 21.1 #1), then closes into the aircraft-window frame.
+ *  01 Hero: a full-bleed sky film (an airliner seen from below, climbing away) behind a white wordmark, the tagline
+ *     and two buttons. Scrolling plays the film (the sky turns golden), the text lifts away, and the film closes into
+ *     the aircraft-window frame.
  *  02 Statement: the same frame continues with the window film, which grows to full bleed while the words
  *     light up one by one (spec 21.1 #6). The clip ends on bright city, so the chapter dips to dark.
  * Without motion (tier C, Pause, reduced motion, Save-Data) the two chapters are plain stacked sections.
@@ -49,42 +49,23 @@ export function Opening() {
     const dot = hero?.querySelector<HTMLElement>('[data-dot]')
     const letters = hero?.querySelectorAll<HTMLElement>('[data-letter]')
     const wordmark = hero?.querySelector<HTMLElement>('[data-wordmark]')
-    const lettersKo = hero?.querySelectorAll<HTMLElement>('[data-letter-ko]')
-    const wordmarkKo = hero?.querySelector<HTMLElement>('[data-wordmark-ko]')
-    if (!stage || !hero || !statement || !heroFilm || !stFilm || !dot || !letters || !wordmark || !lettersKo || !wordmarkKo) return
+    if (!stage || !hero || !statement || !heroFilm || !stFilm || !dot || !letters || !wordmark) return
 
     let pinTrigger: ScrollTrigger | undefined
     const ctx = gsap.context(() => {
       const windowClip = () =>
         getComputedStyle(document.documentElement).getPropertyValue('--window').trim() || FULL
 
-      const centre = () => {
-        const s = hero.getBoundingClientRect()
-        const d = dot.getBoundingClientRect()
-        return { x: d.left + d.width / 2 - s.left, y: d.top + d.height / 2 - s.top }
-      }
-      // Distance from the dot to the farthest corner: the radius that covers the whole screen.
-      const reach = () => {
-        const { x, y } = centre()
-        const w = hero.clientWidth
-        const h = hero.clientHeight
-        return Math.hypot(Math.max(x, w - x), Math.max(y, h - y))
-      }
-      const circle = (r: number) => {
-        const { x, y } = centre()
-        return `circle(${r}px at ${x}px ${y}px)`
-      }
-
       // Load-in: the wordmark rises letter by letter, once (not scrubbed). Skipped when the page opens mid-scroll.
       if (window.scrollY < 8) {
-        gsap.set([wordmark, wordmarkKo], { clipPath: 'inset(-20% -5% 0% -5%)' })
+        gsap.set(wordmark, { clipPath: 'inset(-20% -5% 0% -5%)' })
         // Rise only (no fade): the first paint stays solid, which keeps the largest paint early.
-        gsap.from([letters, lettersKo], {
+        gsap.from(letters, {
           yPercent: 110,
           duration: 0.6,
           ease: 'expo.out',
           stagger: 0.03,
-          onComplete: () => gsap.set([wordmark, wordmarkKo], { clearProps: 'clipPath' }),
+          onComplete: () => gsap.set(wordmark, { clearProps: 'clipPath' }),
         })
       }
 
@@ -115,25 +96,16 @@ export function Opening() {
       pinTrigger = tl.scrollTrigger
 
       // ---- Chapter 01 ----
-      tl.set(heroFilm, { clipPath: () => circle(0) }, 0)
-        .set(statement, { opacity: 0 }, 0)
+      tl.set(statement, { opacity: 0 }, 0)
         .to('[data-hero-fade]', { opacity: 0, y: -24, duration: 0.5, stagger: 0.05 }, 0.1)
         .to(letters, { yPercent: -45, opacity: 0, duration: 0.7, stagger: 0.025 }, 0.25)
-        .to(lettersKo, { yPercent: -45, opacity: 0, duration: 0.7, stagger: 0.025 }, 0.25)
-        // The full stop swells until it fills the screen with gold.
-        .to(
-          dot,
-          { scale: () => (reach() / (dot.offsetWidth / 2)) * 1.04, ease: 'power2.in', duration: 1, transformOrigin: '50% 50%' },
-          0.55,
-        )
-        // The film opens through a circle centred on the dot, on top of the gold, and plays as it opens.
-        .to(heroFilm, { clipPath: () => circle(reach() * 1.05), duration: 1, ease: 'power1.inOut' }, 1.5)
-        .to(heroP, { p: 1, duration: 1.9, onUpdate: () => heroVideo.current?.seek(heroP.p) }, 1.5)
-        .to(dot, { opacity: 0, duration: 0.1 }, 2.55)
-        // Close into the window frame; the page turns black around it.
-        .set(heroFilm, { clipPath: FULL }, 2.6)
-        .set(hero, { backgroundColor: '#05070d' }, 2.6)
-        .to(heroFilm, { clipPath: windowClip, duration: 0.8, ease: 'power2.inOut' }, 2.6)
+        .to(dot, { opacity: 0, duration: 0.4 }, 0.5)
+        // The dark tint that keeps the white text readable clears as the text leaves.
+        .to('[data-hero-scrim]', { opacity: 0, duration: 1 }, 0.2)
+        // The film plays as you scroll: the airliner climbs away and the sky turns golden.
+        .to(heroP, { p: 1, duration: 2.4, onUpdate: () => heroVideo.current?.seek(heroP.p) }, 0.2)
+        // Close into the window frame; the page is black around it.
+        .fromTo(heroFilm, { clipPath: FULL }, { clipPath: windowClip, duration: 0.8, ease: 'power2.inOut' }, 2.6)
 
       // ---- Handover: chapter 02 starts in the same frame ----
       tl.set(statement, { opacity: 1 }, HERO_END)
@@ -176,57 +148,46 @@ export function Opening() {
       <section
         ref={heroRef}
         id="hero"
-        data-theme="light"
-        className="stage-layer flex flex-col justify-between overflow-hidden"
+        data-theme="dark"
+        className="stage-layer hero2 overflow-hidden"
         style={{
           zIndex: 1,
           minHeight: '100svh',
-          padding: 'var(--margin) var(--margin) calc(var(--margin) + var(--hud-bottom))',
+          padding: 'var(--margin) var(--margin) calc(var(--margin) + var(--hud-bottom) + 12px)',
         }}
       >
+        {/* The sky film fills the whole screen from the first frame. Without motion it is the still first frame. */}
+        <div ref={heroFilmRef} data-hero-film aria-hidden="true" className="absolute inset-0 z-0" style={{ pointerEvents: 'none' }}>
+          <ScrubVideo ref={heroVideo} mediaKey="hero" poster="start" />
+        </div>
+        <div data-hero-scrim aria-hidden="true" className="hero-scrim" />
 
-        <div className="relative z-10 flex flex-col items-start gap-4 hero-top" style={{ paddingTop: 'calc(var(--hud-top) - 8px)' }}>
-          <p data-hero-fade className="hero-headline">
+        <nav data-hero-fade aria-label="Page sections" className="hero-nav">
+          <a href="#services">Services</a>
+          <a href="#approach">Approach</a>
+          <a href="#faq">FAQ</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <div className="hero-copy">
+          <p data-hero-fade className="hero-kicker">
+            {site.descriptor}
+          </p>
+          <div className="hero-wordmark" aria-hidden="true">
+            <FitText text="FLYMECHANICS" />
+          </div>
+          <p data-hero-fade className="hero-tagline">
             {site.tagline}
           </p>
-          <a data-hero-fade href="#contact" className="pill pill--solid">
-            {site.cta.quote} →
+        </div>
+
+        <div data-hero-fade className="hero-cta">
+          <a href="#services" className="pill pill--glass">
+            {site.cta.services}
           </a>
-        </div>
-
-        {/* The film plays behind a white knock-out copy of the wordmark, so it shows only through the letters.
-            The top copy keeps the gold full stop and the hero animation; its own letters are transparent. */}
-        <div className="wordmark-stack relative z-10" aria-hidden="true" style={{ color: 'var(--ink)' }}>
-          <WordmarkFilm />
-          <div className="wordmark-knockout">
-            <FitText text="FLYMECHANICS" knockout />
-          </div>
-          <FitText text="FLYMECHANICS" className="wordmark-dot-only" />
-        </div>
-
-        <div className="relative z-10 grid gap-3">
-          <ServiceTicker />
-          <div className="hero-bottom text-[14px]">
-            <p data-hero-fade className="m-0 max-w-[32ch]">
-              {site.descriptor}
-            </p>
-            <ChennaiClock />
-            <p data-hero-fade className="m-0 flex gap-4 uppercase tracking-[0.04em]" style={{ fontSize: 12, fontWeight: 500 }}>
-              <a className="link-target" href={site.contact.whatsapp}>{site.cta.whatsapp}</a>
-              <a className="link-target" href={`mailto:${site.contact.email}`}>{site.cta.email}</a>
-            </p>
-          </div>
-        </div>
-
-        {/* The film sits above the swelling dot, so it opens on top of the gold. Hidden unless motion runs. */}
-        <div
-          ref={heroFilmRef}
-          data-hero-film
-          aria-hidden="true"
-          className="absolute inset-0 z-20"
-          style={{ clipPath: 'circle(0px at 50% 50%)', pointerEvents: 'none' }}
-        >
-          <ScrubVideo ref={heroVideo} mediaKey="hero" poster="start" />
+          <a href={site.cta.memberLoginHref} className="pill pill--glass">
+            {site.cta.memberLogin}
+          </a>
         </div>
       </section>
 

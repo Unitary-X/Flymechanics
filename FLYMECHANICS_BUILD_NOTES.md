@@ -224,3 +224,20 @@ Running list of everything agreed in chat. The final build prompt must include a
 - Fixed: on phones under 420 px the logo sat under the quote pill once the pill appeared (the pill is 158 px wide); the logo now steps aside past the first screen (the menu still links home). At 280 px the service card and the footer email pushed the page 14 px too wide: smaller title and wrapping now. The motion controls in the menu wrap on 280 px. On landscape phones (about 340 px tall) the ticker is hidden so the first screen's last row is not cut off.
 - Checked by tapping on Pixel 7 and iPhone SE emulation: all five menu links land on their chapter and close the menu; the FAQ opens; the form shows its five validation messages on an empty submit; inputs are 16 px (iOS does not zoom on focus); pinch zoom is allowed.
 - Not checked: a real device, real iOS Safari, a sent enquiry from a phone (email is not configured yet).
+
+## First page swap (owner request)
+- The wordmark (film through the letters, gold dot) now sits at the top under the header; the tagline headline and quote button sit in the middle, then the ticker and bottom row. Same hero animation: letters lift, the dot swells, the film opens from the dot (the code reads the dot position, so nothing else changed). Headline enlarged a little (clamp 32 to 96px). Checked 1366x768, 1366x584, 1920x1080, 1024x768, iPhone 13, iPhone SE: no overlaps, no sideways scroll; letters return on scroll up. Not pushed yet.
+
+## New first page (sky film, owner-supplied clip)
+- hero-film* replaced by the owner's generated clip (airliner seen from below climbing away, sky turning golden), encoded in the four standard sizes plus posters. The old hero clip and the film-through-letters wordmark, ticker, Chennai clock and bottom links were removed (HeroExtras.tsx deleted).
+- Layout: glass section nav (desktop), small descriptor line, white FLYMECHANICS wordmark, tagline, buttons "Our services" and "Member login". A deep-blue tint keeps the white text readable and clears on scroll.
+- Scroll: text lifts away, the film plays (plane climbs, sky goes golden), then closes into the window frame into clip 2. The gold-dot swell was dropped. Header logo and MENU are plain white over the film (hud-plain) and blend elsewhere.
+- OPEN: Member login has no destination. site.content.ts cta.memberLoginHref is "#" with a [CONFIRM member login URL] marker (placeholders now 25), so build:release fails until it is supplied.
+- Checked: 1366x768, 1366x584, 1920x1080, 1024x768, iPhone 13, iPhone SE (no overlaps, no sideways scroll), motion off (still frame), scroll sequence to the window handover. Not checked on a real phone; white-text contrast was judged by eye over a moving sky, not measured.
+
+## Smoother first-clip scrub (owner request)
+- Measured the hero scrub (production build, Playwright, requestVideoFrameCallback): at 350 px/s only 7 to 12 new film frames reached the screen per second, with gaps up to 900 ms. Two causes found: (1) the background loading of the other 12 films started during the scroll and fought the scrub for network and decoder; (2) ScrubVideo deferred each seek to the next animation frame, so the picture updated only every second frame.
+- Fixes: background loading now starts only after a first interaction and only in pauses between scrolling (each film waits 0.8 s plus 0.5 s per place in the page); seeks are issued immediately from the scroll animation instead of one frame later.
+- Result at 350 px/s: about 50 new frames per second (one per display refresh), 16.7 ms cadence, no long tasks, on desktop and Pixel 7 emulation (was 7 to 12 per second with 300 to 900 ms stalls). One slow run in about eight remained (a 150 ms gap) in headless software rendering.
+- Tried and dropped: all-keyframe encode of the hero film (no change in smoothness, 2.4x the file size).
+- Not checked: a real phone or a real GPU, 60 fps interpolated footage (the 24 fps source is not the limit at these scroll speeds).

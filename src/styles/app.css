@@ -39,12 +39,6 @@ body {
   opacity: 0;
   pointer-events: none;
 }
-.stage [data-hero-film] {
-  display: none;
-}
-.stage--motion [data-hero-film] {
-  display: block;
-}
 .stage [data-scrim] {
   opacity: 1;
 }
@@ -177,6 +171,10 @@ h3 {
   top: 8px;
 }
 
+.hud-plain {
+  color: #fff;
+  text-shadow: 0 1px 14px rgba(4, 38, 58, 0.45);
+}
 .hud-blend {
   mix-blend-mode: difference;
   color: #fff;
@@ -272,13 +270,6 @@ html[data-motion='off'] *::before,
 html[data-motion='off'] *::after {
   animation-duration: 0.001ms !important;
   transition-duration: 0.001ms !important;
-}
-
-/* Phone crop focus (addendum section C): keep the aircraft in frame in the portrait crop. */
-@media (max-width: 820px) {
-  [data-hero-film] video {
-    object-position: 18% 50%;
-  }
 }
 
 @media (max-width: 820px) {
@@ -1010,119 +1001,124 @@ html[data-motion='full'][data-tier='A'] .close-stick video {
 }
 
 
-/* First screen: headline, film-through-the-letters wordmark, Chennai clock, service ticker */
-.hero-headline {
-  margin: 0;
-  max-width: 21ch;
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.04;
-  font-size: clamp(30px, min(4.4vw, 8.4svh), 76px);
-  text-wrap: balance;
+/* First screen: full-bleed sky film, white wordmark, tagline, two buttons */
+.hero2 {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #05070d;
+  color: #fff;
 }
-.wordmark-stack {
-  isolation: isolate; /* the blend below only sees the film, never the page behind */
-}
-.wordmark-film {
-  position: absolute;
-  inset: 2px 0; /* a hair inside the knock-out layer so no film edge peeks out at the top and bottom */
-  overflow: hidden;
-  z-index: 0;
-}
-.wordmark-film video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 42%;
-  display: block;
-  /* a little darker and richer so the letters stay strong against the white page */
-  filter: brightness(0.62) contrast(1.25) saturate(1.2);
-}
-.wordmark-knockout {
+.hero-scrim {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: var(--white);
-  color: #000;
-  /* white stays white, black letters let the film through */
-  mix-blend-mode: lighten;
+  pointer-events: none;
+  /* a soft deep-blue tint behind the text, so white lettering holds on bright clouds */
+  background:
+    linear-gradient(180deg, rgba(4, 38, 58, 0.55) 0%, rgba(4, 38, 58, 0.28) 38%, rgba(4, 38, 58, 0) 62%),
+    linear-gradient(0deg, rgba(4, 38, 58, 0.3) 0%, rgba(4, 38, 58, 0) 24%);
 }
-.wordmark-dot-only {
-  position: relative;
-  z-index: 2;
-}
-.wordmark-dot-only [data-letter] {
-  color: transparent;
-}
-.hero-bottom {
+.hero-nav {
+  position: absolute;
+  z-index: 10;
+  top: calc(var(--margin) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px 24px;
-}
-.hero-clock {
-  display: flex;
-  gap: 14px;
-  color: var(--grey-60);
-  white-space: nowrap;
-}
-.hero-ticker {
-  overflow: hidden;
-  border-top: 1px solid var(--line-light);
-  border-bottom: 1px solid var(--line-light);
-  padding: 6px 0;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-}
-.hero-ticker-track {
-  display: flex;
-  width: max-content;
-  animation: hero-ticker 48s linear infinite;
-}
-.hero-ticker-row {
-  display: flex;
-  flex: none;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.hero-ticker-row li {
-  flex: none;
-  padding-right: 28px;
-  font: 500 12px/18px var(--font-ui);
+  gap: clamp(14px, 2.2vw, 36px);
+  padding: 0 clamp(18px, 2.4vw, 34px);
+  height: 44px;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  font: 500 13px/1 var(--font-ui);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink);
 }
-.hero-ticker-row li::after {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-left: 28px;
-  border-radius: 50%;
-  background: var(--gold);
-  vertical-align: middle;
+.hero-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: #fff;
+  text-decoration: none;
 }
-@keyframes hero-ticker {
-  to {
-    transform: translateX(-50%);
-  }
-}
-html[data-motion='off'] .hero-ticker-track,
-html[data-paused='true'] .hero-ticker-track {
-  animation-play-state: paused;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-ticker-track {
-    animation: none;
-  }
+.hero-nav a:hover {
+  color: var(--gold);
 }
 @media (max-width: 820px) {
-  .hero-bottom {
-    flex-direction: column;
-    align-items: flex-start;
+  .hero-nav {
+    display: none;
+  }
+}
+.hero-copy {
+  position: relative;
+  z-index: 10;
+  margin-top: calc(var(--hud-top) - 8px + min(3svh, 24px));
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: clamp(12px, 2.2svh, 22px);
+}
+.hero-kicker {
+  margin: 0;
+  font: 500 clamp(11px, 1vw, 14px)/1.4 var(--font-ui);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 14px rgba(4, 38, 58, 0.45);
+}
+.hero-wordmark {
+  width: 100%;
+  color: #fff;
+  text-shadow: 0 2px 30px rgba(4, 38, 58, 0.25);
+}
+.hero-tagline {
+  margin: 0;
+  max-width: 22ch;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.14;
+  font-size: clamp(22px, min(2.6vw, 5svh), 38px);
+  text-wrap: balance;
+  text-shadow: 0 2px 22px rgba(4, 38, 58, 0.4);
+}
+.hero-cta {
+  position: relative;
+  z-index: 10;
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pill--glass {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  min-width: clamp(150px, 20vw, 240px);
+  justify-content: center;
+  height: 44px;
+}
+.pill--glass:hover {
+  background: #fff;
+}
+@media (max-width: 520px) {
+  .hero-cta {
+    gap: 10px;
+  }
+  .pill--glass {
+    min-width: 0;
+    flex: 1;
+    padding: 0 10px;
+  }
+}
+/* Short windows (small laptops, landscape phones): a smaller tagline keeps the spacing even. */
+@media (max-height: 560px) {
+  .hero-tagline {
+    font-size: clamp(18px, 4.4svh, 28px);
   }
 }
 
@@ -1166,9 +1162,4 @@ html[data-paused='true'] .hero-ticker-track {
   justify-content: center;
 }
 
-/* Landscape phones are only about 340px tall: drop the ticker so the first screen's last row is not cut off. */
-@media (max-height: 460px) {
-  .hero-ticker {
-    display: none;
-  }
-}
+

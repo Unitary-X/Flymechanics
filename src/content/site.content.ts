@@ -5,7 +5,15 @@ export const site = {
   wordmark: "FLYMECHANICS.",
   descriptor: "Corporate travel management — Chennai, India",
   tagline: "Time flies. It's up to you to be the navigator.",
-  cta: { quote: "Request a quote", whatsapp: "WhatsApp", email: "Email us" },
+  cta: {
+    quote: "Request a quote",
+    whatsapp: "WhatsApp",
+    email: "Email us",
+    services: "Our services",
+    memberLogin: "Member login",
+    // [CONFIRM member login URL: where the Member login button should lead. It points nowhere until supplied.]
+    memberLoginHref: "#",
+  },
 
   statement: "We source the best method of transport and fares — so your people just travel.",
   modes: ["Air", "Rail", "Hotel and serviced apartments", "Car rental and chauffeur", "Ferry"],

@@ -11,6 +11,9 @@ export function Header() {
   const { active } = useMotion()
   const [open, setOpen] = useState(false)
   const [pastHero, setPastHero] = useState(false)
+  // Over the first screen's sky film the logo and MENU are plain white; everywhere else they blend (legible on white
+  // and black). Starts true so the first paint over the film is already white.
+  const [overHero, setOverHero] = useState(true)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const close = useCallback(() => setOpen(false), [])
 
@@ -21,6 +24,14 @@ export function Header() {
     window.addEventListener('fm:pasthero', onPast)
     return () => window.removeEventListener('fm:pasthero', onPast)
   }, [])
+  useEffect(() => {
+    const home = window.location.pathname === '/'
+    const limit = () => window.innerHeight * (active ? 1.5 : 0.9)
+    const check = () => setOverHero(home && window.scrollY < limit())
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    return () => window.removeEventListener('scroll', check)
+  }, [active])
   useEffect(() => {
     if (active) return
     let raf = 0
@@ -44,7 +55,7 @@ export function Header() {
       {/* The blend sits on the header element itself: a fixed element with z-index is its own stacking
           context, so a blend set on its children would only see the header's own transparent background. */}
       <header
-        className="hud-blend fixed inset-x-0 top-0 z-[80] flex items-start justify-between"
+        className={`${overHero ? 'hud-plain' : 'hud-blend'} fixed inset-x-0 top-0 z-[80] flex items-start justify-between`}
         style={{ padding: 'var(--margin)', pointerEvents: 'none' }}
       >
         <a

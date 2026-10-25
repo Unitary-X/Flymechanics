@@ -1,12 +1,29 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { media, MOBILE_MAX, type MediaKey } from '~/config/media'
 import { useMotion } from './MotionProvider'
-import { layoutReady, useAfterQuiet } from '~/lib/scroll'
+import { layoutReady } from '~/lib/scroll'
 
-// Films below the first screen are fetched in page order once the visitor has started to interact, one step apart, so
-// they are already on the device when it reaches them. A film that comes within a few screens loads at once.
-const WARM_STEP_MS = 1100
+// Films below the first screen are fetched in the background, in page order, but only in the pauses between scrolling:
+// downloading and decoding other films while the visitor is scrubbing the one on screen makes the scrub stutter. Each
+// film waits a little longer after the last scroll than the one before it. A film that comes within a few screens of
+// the viewport still loads at once.
+const WARM_IDLE_MS = 800
+const WARM_STEP_MS = 500
 let warmOrder = 0
+let interacted = false
+let lastActivity = 0
+let listening = false
+function listenForActivity() {
+  if (listening || typeof window === 'undefined') return
+  listening = true
+  const mark = () => {
+    interacted = true
+    lastActivity = performance.now()
+  }
+  ;(['wheel', 'touchstart', 'touchmove', 'scroll', 'keydown', 'pointerdown'] as const).forEach((e) =>
+    window.addEventListener(e, mark, { passive: true }),
+  )
+}
 
 type Files = (typeof media)[MediaKey]
 type Connection = { saveData?: boolean; downlink?: number; effectiveType?: string }
@@ -55,7 +72,6 @@ export const ScrubVideo = forwardRef<ScrubHandle, ScrubVideoProps>(function Scru
   const [src, setSrc] = useState<string | undefined>(undefined)
   const files = media[mediaKey]
   const [order] = useState(() => (lazy ? warmOrder++ : 0))
-  const warm = useAfterQuiet(order * WARM_STEP_MS)
 
   const apply = useCallback(() => {
     raf.current = 0
@@ -74,7 +90,9 @@ export const ScrubVideo = forwardRef<ScrubHandle, ScrubVideoProps>(function Scru
     () => ({
       seek(p: number) {
         target.current = Math.min(1, Math.max(0, p))
-        if (!raf.current) raf.current = requestAnimationFrame(apply)
+        // Scroll animations call this from inside the animation frame already, so seek at once: deferring to the
+        // next frame made the picture update only every second frame.
+        apply()
       },
     }),
     [apply],
@@ -117,18 +135,25 @@ export const ScrubVideo = forwardRef<ScrubHandle, ScrubVideoProps>(function Scru
   // Background loading for capable desktops (tier A) and for phones the browser reports as on a 4g connection (their
   // films are small); everything else only loads what is near.
   useEffect(() => {
-    if (!lazy || !warm || !active) return
+    if (!lazy || !active) return
+    listenForActivity()
     const c = (navigator as Navigator & { connection?: Connection }).connection
     const phoneOk = window.innerWidth < MOBILE_MAX && !!c && !c.saveData && c.effectiveType === '4g'
     if (tier !== 'A' && !phoneOk) return
     let cancelled = false
-    void layoutReady.then(() => {
-      if (!cancelled) setSrc((cur) => cur ?? pickFilm(files, tier))
-    })
+    const timer = window.setInterval(() => {
+      // Wait for a first interaction, then for a pause in scrolling that grows with this film's place in the page.
+      if (!interacted || performance.now() - lastActivity < WARM_IDLE_MS + order * WARM_STEP_MS) return
+      window.clearInterval(timer)
+      void layoutReady.then(() => {
+        if (!cancelled) setSrc((cur) => cur ?? pickFilm(files, tier))
+      })
+    }, 300)
     return () => {
       cancelled = true
+      window.clearInterval(timer)
     }
-  }, [lazy, warm, active, tier, files])
+  }, [lazy, order, active, tier, files])
 
   // iPhones and iPads often will not decode a paused video until it has been "played" once after a touch. A silent
   // play-then-pause on the first gesture unlocks every film, so scrolling can drive them straight away.
