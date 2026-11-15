@@ -163,10 +163,10 @@ export function Opening() {
         <div data-hero-scrim aria-hidden="true" className="hero-scrim" />
 
         <nav data-hero-fade aria-label="Page sections" className="hero-nav">
-          <a href="#services">Services</a>
+          <a href="#services">Explore</a>
           <a href="#approach">Approach</a>
-          <a href="#faq">FAQ</a>
           <a href="#contact">Contact</a>
+          <a href={site.cta.memberLoginHref}>Login</a>
         </nav>
 
         <div className="hero-copy">
