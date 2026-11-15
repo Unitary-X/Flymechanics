@@ -15,14 +15,14 @@ export const chapters: readonly Chapter[] = [
   { id: 'handle', n: 3, name: 'We handle', theme: 'dark', pinVh: 300 },
   { id: 'scramble', n: 4, name: 'Time flies', theme: 'dark', pinVh: 160 },
   { id: 'navigator', n: 5, name: 'The navigator', theme: 'dark', pinVh: 480, inMenu: 'Navigator' },
-  { id: 'services', n: 6, name: 'Services', theme: 'light', pinVh: 1080, inMenu: 'Services' },
+  { id: 'services', n: 6, name: 'Services', theme: 'light', pinVh: 1080, inMenu: 'Explore' },
   { id: 'approach', n: 7, name: 'Approach', theme: 'light', pinVh: 150, inMenu: 'Approach' },
-  { id: 'faq', n: 8, name: 'FAQ', theme: 'light', pinVh: 100, inMenu: 'FAQ' },
+  { id: 'faq', n: 8, name: 'FAQ', theme: 'light', pinVh: 100 },
   { id: 'contact', n: 9, name: "Let's fly", theme: 'dark', pinVh: 150, inMenu: 'Contact' },
 ] as const
 
-// Menu order follows the spec (5.3): Services, Navigator, Approach, FAQ, Contact.
-const menuOrder = ['services', 'navigator', 'approach', 'faq', 'contact']
+// Menu order: Explore, Navigator, Approach, Contact (Login is appended in Menu.tsx).
+const menuOrder = ['services', 'navigator', 'approach', 'contact']
 export const menuChapters = menuOrder
   .map((id) => chapters.find((c) => c.id === id))
   .filter((c): c is Chapter => c !== undefined && c.inMenu !== undefined)

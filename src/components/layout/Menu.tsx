@@ -93,6 +93,16 @@ export function Menu({ open, onClose, returnFocusTo }: MenuProps) {
               </a>
             </li>
           ))}
+          <li>
+            <a
+              href={site.cta.memberLoginHref}
+              onClick={onClose}
+              className="t-row block no-underline transition-colors duration-300 hover:text-[var(--gold)]"
+              style={{ color: 'inherit' }}
+            >
+              Login
+            </a>
+          </li>
         </ul>
       </nav>
 
